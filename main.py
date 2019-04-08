@@ -30,8 +30,10 @@ def train():
     Q = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale, patchSize*patchSize, patchSize*patchSize))
     V = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale, patchSize*patchSize, 1))
     h = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale, patchSize*patchSize, 1))
+    W = np.diag(utils.gaussian2d([gradientNeigbor, gradientNeigbor], 2))
 
     ## calculate Q, V from image dataset
+    print("Dataset Q,V collecting...")
     trainList = utils.loadImageList(trainPath)
     for i, file in enumerate(trainList):
 
@@ -45,14 +47,14 @@ def train():
         height, width = Upsampled_y.shape
         cnt = 0  
         for row in range(margin, height-margin, stride):
-            for col in range(margin, width-margin, stride)
+            for col in range(margin, width-margin, stride):
                 cnt += 1
                 patch = Upsampled_y[row-patchMargin:row+patchMargin+1, col-patchMargin:col+patchMargin+1]
                 patch = patch.reshape([1, patchSize*patchSize])  # flatten the vector
                 pixelHR = HR_y[row,col]
 
                 gradientblock = Upsampled_y[row-gradientmargin:row+gradientmargin+1, col-gradientmargin:col+gradientmargin+1]
-                angle, strength, coherence = hashkey(gradientblock, Qangle, weighting)
+                angle, strength, coherence = utils.hashkey(gradientblock, W, Qangle, Qstrength, Qcoherence)
                 pixeltype = ((row-upscale) % R) * R + ((col-upscale) % R)
                 
                 ATA = np.dot(patch.T, patch)
@@ -66,7 +68,11 @@ def train():
 
     ## optimize h for each bucket 
     print('Computing h ...')
-    
+    for pixelHR in range(0, R*R):
+        for angle in range(0, Qangle):
+            for strength in range(0, Qstrength):
+                for coherence in range(0, Qcoherence):
+                    h[angle,strength,coherence,pixeltype] = cgls(Q[angle,strength,coherence,pixeltype], V[angle,strength,coherence,pixeltype])
 
 
 if __name__ == "__main__":
