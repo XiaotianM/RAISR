@@ -77,6 +77,19 @@ def bilinear(img, scale):
     return upsampled
 
 
+def gaussian2d(shape=(3,3),sigma=0.5):
+    """
+    2D gaussian mask - should give the same result as MATLAB's
+    fspecial('gaussian',[shape],[sigma])
+    """
+    m,n = [(ss-1.)/2. for ss in shape]
+    y,x = np.ogrid[-m:m+1,-n:n+1]
+    h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
+    h[ h < np.finfo(h.dtype).eps*h.max() ] = 0
+    sumh = h.sum()
+    if sumh != 0:
+        h /= sumh
+    return h
 
 
 def shave(img, border):
@@ -87,3 +100,37 @@ def shave(img, border):
     if len(np.array(img).shape) == 3:
         return img[border:-border, border:-border, :]
     return img[border:-border, border:-border]
+
+
+
+def hashkey(block, weight, Qangle, Qangle, Qstrength, Qcoherence):
+
+    gy,gx = np.gradient(block)
+    gx = gx.ravel()
+    gy = gy.ravel()
+
+    # SVD calc
+    G = np.vstack((gx, gy)).T
+    GTWG = G.T.dot(weight).dot(G)
+    [eigenvalues,eigenvectors] = np.linalg.eig(GTWG)
+    
+    #For angle
+    angle = np.math.atan2(eigenvectors[0,1],eigenvectors[0,0])
+    if angle<0:
+        angle += np.pi
+    
+    #For strength
+    strength = eigenvalues.max()/(eigenvalues.sum()+0.0001)
+    
+    #For coherence
+    lamda1 = np.math.sqrt(eigenvalues.max())
+    lamda2 = np.math.sqrt(eigenvalues.min())
+    coherence = np.abs((lamda1-lamda2)/(lamda1+lamda2+0.0001))
+    
+    #Quantization
+    angle = np.floor(angle/(np.pi/Qangle)-1)
+    strength = np.floor(strength/(1.0/Qstrenth)-1)
+    coherence = np.floor(coherence/(1.0/Qcoherence)-1)
+    
+    return int(angle),int(strength),int(coherence)
+
