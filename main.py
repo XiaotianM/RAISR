@@ -30,11 +30,13 @@ def train():
     V = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale, patchSize*patchSize, 1))
     binCount = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale))
     h = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale, patchSize*patchSize, 1))
+    W = np.diag(utils.gaussian2d([gradientNeigbor, gradientNeigbor], 2))
 
     weighting = utils.gaussian2d([gradientNeigbor, gradientNeigbor], 2)
     weighting = np.diag(weighting.ravel())
 
     ## calculate Q, V from image dataset
+    print("Dataset Q,V collecting...")
     trainList = utils.loadImageList(trainPath)
     for i, file in enumerate(trainList):
 
