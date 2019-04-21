@@ -42,7 +42,7 @@ def rgb2ycbcr(img, only_y=True):
 
 
 
-def setImageAlign(image, alignment=2):
+def setImageAlign(im, alignment=2):
     sz = im.shape
     h = sz[0] // alignment * alignment
     w = sz[1] // alignment * alignment
@@ -60,22 +60,22 @@ def resize(img, scale, method=Image.BICUBIC):
     return image
 
 
+
 def bilinear(img, scale):
     '''
         if img.shape = [2,2], output.shape = [2*scale-1, 2*scale-1]
         e.g. scale = x2, the kernel for bilinear is 4
-        so when h,w = img.shape, the bilinear upsampled image is 2*h-1, 2*w-1
+        so when h,w = img.shape, the bilinear upsampled image is 2*h-1, 2*w-1,
     '''
     img = np.float32(img)
     h, w = img.shape
     hgrid = np.linspace(0, h-1, h)
     wgrid = np.linspace(0, w-1, w)
-    bilinearInterp = interpolate.interp2d(w, h, img, kind="linear")
-    hgrid = np.linspace(0. h-1, h*scale-1)
-    wgrid = np.linspace(0. w-1, w*scale-1)
+    bilinearInterp = interpolate.interp2d(wgrid, hgrid, img, kind="linear")
+    hgrid = np.linspace(0, h-1, h*scale-1)
+    wgrid = np.linspace(0, w-1, w*scale-1)
     upsampled = bilinearInterp(wgrid, hgrid)
     return upsampled
-
 
 
 
@@ -87,3 +87,20 @@ def shave(img, border):
     if len(np.array(img).shape) == 3:
         return img[border:-border, border:-border, :]
     return img[border:-border, border:-border]
+
+
+
+
+def gaussian2d(shape=(3,3),sigma=0.5):
+    """
+    2D gaussian mask - should give the same result as MATLAB's
+    fspecial('gaussian',[shape],[sigma])
+    """
+    m,n = [(ss-1.)/2. for ss in shape]
+    y,x = np.ogrid[-m:m+1,-n:n+1]
+    h = np.exp( -(x*x + y*y) / (2.*sigma*sigma) )
+    h[ h < np.finfo(h.dtype).eps*h.max() ] = 0
+    sumh = h.sum()
+    if sumh != 0:
+        h /= sumh
+    return h
