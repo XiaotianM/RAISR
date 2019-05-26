@@ -1,7 +1,7 @@
 import os, argparse, math
 import numpy as np
 from PIL import Image
-from helper import Args, utils, hashkey
+from helper import Args, utils, hashkey, cgls
 
 
 args = Args.getArgs()
@@ -87,9 +87,10 @@ def train():
                 for k in range(0, upscale):
                     if(binCount[i,j,t,k] >= 100):             # if dataset in one bin is small, skip
                         h[i,j,t,k] = np.linalg.inv(Q[i,j,t,k] + 0.001).dot(V[i,j,t,k])
+                        h[i,j,t,k] = cgls.cgls(Q[i,j,t,k], V[i,j,t,k])
                         flag[i,j,t,k] = 1
                     else:
-                        CNT = cnt + 1
+                        CNT = CNT + 1
 
     print("skip %d bin since the dataset in this bin is too small..." % CNT)
     np.save("filters.npy", h)

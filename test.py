@@ -15,10 +15,15 @@ testPath = args.test_dataset
 
 
 if __name__ == "__main__":
+
+    h = np.load('filters.npy')
+    flag = np.load('flag.npy')
+
     weighting = utils.gaussian2d([gradientSize, gradientSize], 2)
     weighting = np.diag(weighting.ravel())
     testList = utils.loadImageList(testPath)
     for i, file in enumerate(testList):
+        print("processing [%d / %d] image..." % (i, len(testList)))
         HR = np.array(Image.open(testPath +file))
         HR = utils.setImageAlign(HR, alignment=upscale)
         LR = utils.resize(HR, 1/upscale, method=Image.BICUBIC)
@@ -42,7 +47,8 @@ if __name__ == "__main__":
                 angle, strength, coherence = hashkey.hashkey(dh, dw, weighting, args)
                 pixeltype = ((row-margin) % upscale) * upscale +((col-margin) % upscale)
 
-                sr_y[row, col] = (h[angle, strength, coherence, pixeltype].T * patch).ravel()
+                if flag[angle, strength, coherence, pixeltype] == 1:
+                    sr_y[row, col] = patch.dot(h[angle, strength, coherence, pixeltype]).ravel()
 
         sr_y = np.clip(sr_y * 255.0, 0, 255)
         sr_y = np.uint8(sr_y)
