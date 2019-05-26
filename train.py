@@ -61,7 +61,7 @@ def train():
                 pixelHR = HR_y[row,col]
                 
                 # gradientMargin < blockmargin; can remove border artificats
-                gradientblock = Upsampled_y[row-gradientMargin:row+gradientMargin+1, col-gradientMargin:col+gradientMargin+1]
+                # gradientblock = Upsampled_y[row-gradientMargin:row+gradientMargin+1, col-gradientMargin:col+gradientMargin+1]
                 dh = Upsampled_y_dh[row-gradientMargin:row+gradientMargin+1, col-gradientMargin:col+gradientMargin+1]
                 dw = Upsampled_y_dw[row-gradientMargin:row+gradientMargin+1, col-gradientMargin:col+gradientMargin+1]
 
@@ -78,6 +78,7 @@ def train():
 
 
     ## optimize h for each bucket 
+    CNT= 0
     print('Computing h ...')
     flag = np.zeros((Qangle, Qstrength, Qcoherence, upscale*upscale))
     for i in range(0, Qangle):
@@ -87,8 +88,10 @@ def train():
                     if(binCount[i,j,t,k] >= 100):             # if dataset in one bin is small, skip
                         h[i,j,t,k] = np.linalg.inv(Q[i,j,t,k] + 0.001).dot(V[i,j,t,k])
                         flag[i,j,t,k] = 1
+                    else:
+                        CNT = cnt + 1
 
-
+    print("skip %d bin since the dataset in this bin is too small..." % CNT)
     np.save("filters.npy", h)
     np.save("flag.npy", flag)
 
