@@ -2,7 +2,8 @@ import os, argparse, math
 import numpy as np
 from PIL import Image
 from helper import Args, utils, hashkey, cgls
-
+import time
+from numba import jit
 
 args = Args.getArgs()
 
@@ -17,7 +18,6 @@ trainPath = args.train_dataset
 Qangle = args.Qangle
 Qstrength = args.Qstrength
 Qcoherence = args.Qcoherence
-
 
 def train():
 
@@ -39,7 +39,8 @@ def train():
     print("Dataset Q,V collecting...")
     trainList = utils.loadImageList(trainPath)
     for i, file in enumerate(trainList):
-
+        
+        start = time.time()
         HR = np.array(Image.open(trainPath + file))
         HR = utils.setImageAlign(HR, alignment=upscale)
         LR = utils.resize(HR, 1/upscale, method=Image.BICUBIC)   # LR is downscaling by Bicubic 
@@ -73,8 +74,9 @@ def train():
                 Q[angle,strength,coherence,pixeltype] += ATA
                 V[angle,strength,coherence,pixeltype] += ATb
                 binCount[angle,strength,coherence,pixeltype] += 1
-
-        print("process image %s, patches: %d , (%d / %d)..." % (file, cnt, i, len(trainList)))
+        
+        print("[*] %d / %d time cost: %f" % (i+1, len(trainList), time.time() - start))
+        print("process image %s, patches: %d..." % (file, cnt))
 
 
     ## optimize h for each bucket 
@@ -93,8 +95,8 @@ def train():
                         CNT = CNT + 1
 
     print("skip %d bin since the dataset in this bin is too small..." % CNT)
-    np.save("filters.npy", h)
-    np.save("flag.npy", flag)
+    np.save("models/filters.npy", h)
+    np.save("models/flag.npy", flag)
 
 if __name__ == "__main__":
     train()

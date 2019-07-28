@@ -2,6 +2,8 @@ import os, argparse, math
 import numpy as np
 from PIL import Image
 from helper import Args, utils, hashkey
+import time
+
 
 args = Args.getArgs()
 
@@ -16,14 +18,14 @@ testPath = args.test_dataset
 
 if __name__ == "__main__":
 
-    h = np.load('filters.npy')
-    flag = np.load('flag.npy')
+    h = np.load('models/filters.npy')
+    flag = np.load('models/flag.npy')
 
     weighting = utils.gaussian2d([gradientSize, gradientSize], 2)
     weighting = np.diag(weighting.ravel())
     testList = utils.loadImageList(testPath)
     for i, file in enumerate(testList):
-        print("processing [%d / %d] image..." % (i, len(testList)))
+        print("processing [%d / %d] image..." % (i+1, len(testList)))
         HR = np.array(Image.open(testPath +file))
         HR = utils.setImageAlign(HR, alignment=upscale)
         LR = utils.resize(HR, 1/upscale, method=Image.BICUBIC)
@@ -31,6 +33,8 @@ if __name__ == "__main__":
         LR = LR / 255.
         HR_y = utils.rgb2ycbcr(HR, only_y=True)
         LR_y = utils.rgb2ycbcr(LR, only_y=True)
+        
+        start = time.time()
         Upsampled_y = utils.bilinear(LR_y, upscale) 
         sr_y = Upsampled_y.copy()        
         Upsampled_y_dh, Upsampled_y_dw = np.gradient(Upsampled_y)
@@ -52,8 +56,13 @@ if __name__ == "__main__":
 
         sr_y = np.clip(sr_y * 255.0, 0, 255)
         sr_y = np.uint8(sr_y)
+        print("Done... time cost %f" % (time.time() - start))
 
-        Image.fromarray(sr_y).save('./result/' + file)
+        Upsampled_y = np.clip(Upsampled_y * 255.0, 0, 255)
+        Upsampled_y = np.uint8(Upsampled_y)
+
+        Image.fromarray(sr_y).save('./result/' + file[:-4] + "_sr.png")
+        Image.fromarray(Upsampled_y).save('./result/' + file[:-4] + "_bilinear.png")
 
 
 
